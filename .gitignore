@@ -1,0 +1,27 @@
+# Git internals
+.git*/
+
+# Other projects
+DZOE*/
+*.tar.gz
+
+# Data files
+*_count_mat.csv*
+RGC_*
+GSE*
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Output
+output/
+
+# Internal docs
+manuscript/
+PROGRESS.md
+
+# OS
+.DS_Store
+Thumbs.db
