@@ -5,7 +5,7 @@
 
 A modular, checkpoint-resumable framework for single-cell RNA-seq time-course analysis.
 
-`mermaid
+```mermaid
 flowchart TD
     A[Raw Counts] --> B[QC + Normalize]
     B --> C[HVG + PCA + UMAP]
@@ -19,7 +19,7 @@ flowchart TD
     D3 --> E
     D4 --> E
     D5 --> E
-`
+```
 
 ## Why scTIME
 
@@ -31,13 +31,13 @@ Most scRNA-seq pipelines treat each time point independently. scTIME is built fo
 | Time-course clustering | k-means clustering of genome-wide expression trajectories; transition gene identification |
 | Cell-type vulnerability | Fold-change-based classification (vulnerable / stable / resilient) with chi-squared testing |
 | Pathway enrichment | Enrichr GO Biological Process per time point, not just pooled conditions |
-| Checkpoint-resumable | Every step saves intermediate .h5ad files; rerunning skips completed work |
+| Checkpoint-resumable | Every step saves intermediate `.h5ad` files; rerunning skips completed work |
 | Memory-efficient | Chunked CSV loading, automatic sparse matrix conversion, float32 storage |
 | Figures | Nature-style PNG + PDF with source CSV data |
 
 ## Quick Start
 
-`ash
+```bash
 pip install pandas numpy scipy anndata scanpy statsmodels gseapy scikit-learn seaborn matplotlib tqdm
 
 python scripts/pipeline.py          # Merge + QC + normalize + HVG + PCA + UMAP
@@ -47,7 +47,7 @@ python scripts/trajectory.py        # Gene co-expression clustering + transition
 python scripts/subtype_analysis.py  # Cell-type composition + vulnerability scoring
 python scripts/pathway_analysis.py  # GO enrichment per time point
 python scripts/make_figures.py      # Publication figures
-`
+```
 
 All scripts include `if __name__ == "__main__"` entry points. Data paths and QC thresholds are configured as class-level attributes.
 
@@ -55,7 +55,7 @@ All scripts include `if __name__ == "__main__"` entry points. Data paths and QC 
 
 Edit class-level attributes in each script before running:
 
-`python
+```python
 # pipeline.py -- QC thresholds
 MIN_GENES = 200          # Min genes per cell
 MAX_GENES = 6000         # Max genes per cell
@@ -67,7 +67,7 @@ n_clusters = 6           # Number of gene trajectory clusters
 
 # pb_deg.py -- statistical test
 # Uses Welch t-test with Benjamini-Hochberg correction
-`
+```
 
 ## License
 
