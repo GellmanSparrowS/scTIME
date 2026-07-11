@@ -23,15 +23,17 @@ flowchart TD
 
 ## Why scTIME
 
-Most scRNA-seq pipelines treat each time point independently. scTIME is built for time-course experiments: it computes gene trajectories, identifies transition nodes between time points, quantifies cell-type vulnerability, and enriches pathways at each temporal stage.
+Most scRNA-seq pipelines treat each time point independently. scTIME is built for time-course experiments: it computes gene expression trajectories across time, identifies transition nodes between consecutive time points, quantifies cell-type vulnerability shifts, and enriches pathways at each temporal stage.
 
-- **Dual DEG strategy** — single-cell Wilcoxon for sensitivity; pseudobulk t-test with BH correction for sample-level statistical rigor
-- **Time-course aware** — k-means clustering of gene expression trajectories; transition gene identification between consecutive time points
-- **Cell-type vulnerability scoring** — fold-change-based classification with chi-squared testing
-- **Time-resolved GO enrichment** — Enrichr per time point, not just pooled conditions
-- **Checkpoint-resumable** — every step saves intermediate .h5ad files; rerunning skips completed work
-- **Memory-efficient** — chunked CSV loading, automatic sparse matrix conversion, float32 storage
-- **Publication-ready** — Nature-style figures (PNG + PDF) with source CSV data
+| Capability | Implementation |
+|---|---|
+| Differential expression | Single-cell Wilcoxon for sensitivity; pseudobulk t-test with BH correction for sample-level statistical rigor |
+| Time-course clustering | k-means clustering of genome-wide expression trajectories; transition gene identification |
+| Cell-type vulnerability | Fold-change-based classification (vulnerable / stable / resilient) with chi-squared testing |
+| Pathway enrichment | Enrichr GO Biological Process per time point, not just pooled conditions |
+| Checkpoint-resumable | Every step saves intermediate .h5ad files; rerunning skips completed work |
+| Memory-efficient | Chunked CSV loading, automatic sparse matrix conversion, float32 storage |
+| Figures | Nature-style PNG + PDF with source CSV data |
 
 ## Quick Start
 
@@ -47,18 +49,24 @@ python scripts/pathway_analysis.py  # GO enrichment per time point
 python scripts/make_figures.py      # Publication figures
 `
 
+All scripts include `if __name__ == "__main__"` entry points. Data paths and QC thresholds are configured as class-level attributes.
+
 ## Configuration
 
-All parameters are class-level attributes. Adjust before running:
+Edit class-level attributes in each script before running:
 
 `python
-MIN_GENES = 200        # Min genes per cell
-MAX_GENES = 6000       # Max genes per cell
-MIN_COUNTS = 500       # Min UMI count
-MAX_MITO_PCT = 20.0    # Max mitochondrial fraction
-n_top_genes = 3000     # Number of HVGs
-n_comps = 50           # PCA components
-n_clusters = 6         # Number of gene trajectory clusters
+# pipeline.py -- QC thresholds
+MIN_GENES = 200          # Min genes per cell
+MAX_GENES = 6000         # Max genes per cell
+MIN_COUNTS = 500         # Min UMI count
+MAX_MITO_PCT = 20.0      # Max mitochondrial fraction
+
+# trajectory.py -- clustering
+n_clusters = 6           # Number of gene trajectory clusters
+
+# pb_deg.py -- statistical test
+# Uses Welch t-test with Benjamini-Hochberg correction
 `
 
 ## License
