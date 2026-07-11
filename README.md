@@ -1,89 +1,133 @@
-# scTIME &middot; Single-Cell Time-course Analysis Pipeline &middot; [中文](#中文)
+# scTIME &middot; [中文](#中文文档)
 
-A modular, checkpoint-resumable computational framework for analyzing single-cell RNA-seq time-course experiments. Designed for multi-condition, multi-timepoint studies with built-in support for quality control, differential expression at both single-cell and pseudobulk resolution, gene trajectory clustering, cell-type composition analysis, and pathway enrichment.
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![scanpy](https://img.shields.io/badge/scanpy-1.12-red)](https://scanpy.readthedocs.io/)
 
-## Features
+> A modular, checkpoint-resumable framework for single-cell RNA-seq time-course analysis. Goes from raw counts to publication figures in one pipeline.
 
-- **Dual DEG strategy**: single-cell Wilcoxon for sensitivity; pseudobulk t-test with BH correction for sample-level statistical rigor
-- **Time-course aware**: k-means clustering of genome-wide expression trajectories; transition gene identification between consecutive time points
-- **Cell-type vulnerability scoring**: quantitative composition shift analysis with chi-squared testing and fold-change-based classification
-- **Time-resolved pathway enrichment**: GO Biological Process enrichment per time point via Enrichr
-- **Checkpoint-resumable**: every major step saves intermediate AnnData objects; rerunning skips completed work
-- **Memory-efficient**: chunked CSV loading with automatic sparse matrix conversion
-- **Publication-ready**: Nature-style figures (PNG + PDF) with underlying CSV data
-
-## Installation
-
-`ash
-pip install pandas numpy scipy anndata scanpy statsmodels gseapy scikit-learn seaborn matplotlib tqdm
+`mermaid
+flowchart LR
+    A[Raw Counts] --> B[QC Filter]
+    B --> C[Normalize + HVG]
+    C --> D[PCA + UMAP]
+    D --> E1[sc DEG<br/>Wilcoxon]
+    D --> E2[pb DEG<br/>t-test]
+    D --> E3[Gene Clusters<br/>KMeans]
+    D --> E4[Subtype<br/>Composition]
+    D --> E5[Pathway<br/>Enrichr]
+    E1 --> F[Figures + Tables]
+    E2 --> F
+    E3 --> F
+    E4 --> F
+    E5 --> F
 `
 
-## Usage
+---
+
+## Why scTIME?
+
+Most scRNA-seq pipelines treat each time point independently. **scTIME is built for time-course experiments**: it computes gene trajectories, identifies transition nodes between time points, quantifies cell-type vulnerability across conditions, and enriches pathways at each temporal stage.
+
+- **Dual DEG strategy**: single-cell Wilcoxon for sensitivity; pseudobulk t-test with BH correction for sample-level statistical rigor — no pseudo-replication
+- **Time-course aware**: k-means clustering of 40K+ gene expression trajectories; transition gene identification between consecutive time points
+- **Cell-type vulnerability scoring**: fold-change-based classification (vulnerable / stable / resilient) with chi-squared testing
+- **Time-resolved GO enrichment**: Enrichr per time point, not just pooled conditions
+- **Checkpoint-resumable**: every step saves intermediate .h5ad files; rerunning skips completed work — saves hours on large datasets
+- **Memory-efficient**: chunked CSV loading → automatic sparse matrix conversion → loat32 storage
+- **Publication-ready**: Nature-style figures (PNG + PDF) with corresponding CSV source data
+
+## Quick Start
 
 `ash
-python scripts/pipeline.py          # Merge + QC + normalize + HVG + PCA + UMAP
-python scripts/deg_analysis.py      # Single-cell DEG + pseudobulk construction
-python scripts/pb_deg.py            # Pseudobulk t-test DEG (sample-level)
-python scripts/trajectory.py        # Gene co-expression clustering + transitions
-python scripts/subtype_analysis.py  # Cell-type composition + vulnerability scoring
+pip install pandas numpy scipy anndata scanpy \
+            statsmodels gseapy scikit-learn \
+            seaborn matplotlib tqdm
+
+python scripts/pipeline.py          # QC + preprocessing (resumable)
+python scripts/deg_analysis.py      # Single-cell DEG + pseudobulk
+python scripts/pb_deg.py            # Pseudobulk t-test DEG
+python scripts/trajectory.py        # Gene co-expression clustering
+python scripts/subtype_analysis.py  # Cell-type vulnerability scoring
 python scripts/pathway_analysis.py  # GO enrichment per time point
 python scripts/make_figures.py      # Publication figures
 `
 
-All scripts include `if __name__ == "__main__"` entry points and can be run independently or as a chained pipeline. Data paths are configured through class-level attributes.
+All scripts include `if __name__ == "__main__"` entry points and can run independently or chained.
 
-## Repository Structure
+## Pipeline Architecture
 
-`
-scripts/          Analysis modules (7 scripts, independently runnable)
-output/           Generated results (excluded from version control)
-  deg/            Differential expression tables
-  trajectory/     Gene clusters and transition genes
-  subtype/        Cell-type composition and vulnerability scores
-  pathway/        GO enrichment results
-  figures/        Publication figures (PNG + PDF)
-  figure_data/    Underlying CSV data for each figure
-`
+| Step | Script | Output |
+|------|---------|--------|
+| Merge + QC | pipeline.py | merged.h5ad, qc_filtered.h5ad |
+| Normalize + HVG + PCA + UMAP | pipeline.py | 
+ormalized_hvg.h5ad, preprocessed.h5ad |
+| Single-cell DEG | deg_analysis.py | deg/*_vs_Ctrl_deg.csv |
+| Pseudobulk DEG | pb_deg.py | deg/pb_*_vs_Ctrl.csv |
+| Gene clustering | 	rajectory.py | 	rajectory/gene_clusters.csv |
+| Subtype analysis | subtype_analysis.py | subtype/subtype_vulnerability.csv |
+| Pathway enrichment | pathway_analysis.py | pathway/pathway_*_vs_Ctrl.csv |
+| Figures | make_figures.py | igures/*.png, igure_data/*.csv |
 
 ## Configuration
 
-Key parameters are class-level attributes and can be adjusted before execution:
+All parameters are class-level attributes. Adjust before running:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| MIN_GENES / MAX_GENES | 200 / 6000 | Gene count thresholds for QC |
-| MAX_MITO_PCT | 20.0 | Mitochondrial percentage cutoff |
-| n_top_genes | 3000 | Number of highly variable genes |
-| n_comps | 50 | PCA components |
-| n_clusters | 6 | Gene trajectory clusters |
+`python
+# pipeline.py
+class ONCPipeline:
+    MIN_GENES = 200       # Min genes per cell
+    MAX_GENES = 6000      # Max genes per cell
+    MIN_COUNTS = 500      # Min UMI count
+    MAX_MITO_PCT = 20.0   # Max mitochondrial %
+    MITO_PREFIX = mt-   # Mouse MT gene prefix
 
-## License
+# trajectory.py
+    n_clusters = 6        # Number of gene trajectory clusters
 
-MIT
+# deg_analysis.py / pb_deg.py
+    method = wilcoxon   # sc DEG method
+    # pb DEG uses Welch t-test with BH correction
+`
+
+## Output Structure
+
+`
+output/
+├── merged.h5ad              # Raw merged counts
+├── qc_filtered.h5ad         # Post-QC
+├── normalized_hvg.h5ad      # Normalized, all genes
+├── preprocessed.h5ad        # PCA + UMAP, HVG subset only
+├── deg/                     # Differential expression tables
+├── trajectory/              # Gene clusters + transitions
+├── subtype/                 # Composition + vulnerability scores
+├── pathway/                 # GO enrichment results
+├── figures/                 # Publication figures (PNG + PDF)
+└── figure_data/             # Underlying CSV per figure
+`
+
+## Documentation
+
+See [SKILL.md](SKILL.md) for detailed methods, memory management patterns, and best practices developed during this project.
 
 ---
 
-## 中文 {#中文}
+## 中文文档
 
-scTIME 是一套模块化、支持断点续跑的单细胞 RNA-seq 时间序列分析框架。适用于多条件、多时间点的实验设计，内置质量控制、单细胞与伪Bulk双重差异表达、基因轨迹聚类、细胞类型组成分析和通路富集功能。
+scTIME 是一套面向单细胞 RNA-seq 时间序列实验的模块化分析框架。与大多数将每个时间点独立处理的流程不同，scTIME 专为时间序列设计：计算基因轨迹、识别时间点间转换节点、量化跨条件的细胞类型脆弱性，并在每个时间阶段进行通路富集。
 
-### 核心特性
+**核心能力**：单细胞与伪Bulk双重差异表达策略 &middot; 全基因组表达轨迹 k 均值聚类 &middot; 基于倍变化的细胞类型脆弱性评分 &middot; Enrichr 时间分辨 GO 富集 &middot; 断点续跑 &middot; 内存高效的稀疏矩阵处理 &middot; Nature 风格出版图表 + CSV 源数据。
 
-- **双重差异策略**：单细胞级 Wilcoxon（高灵敏度）+ 伪Bulk级 t 检验及 BH 校正（样本级统计严谨性）
-- **时间序列感知**：全基因组表达轨迹的 k 均值聚类；相邻时间点间转换基因鉴定
-- **细胞类型脆弱性评分**：定量组成偏移分析，结合卡方检验和倍变化分类
-- **时间分辨通路富集**：通过 Enrichr 逐时间点进行 GO Biological Process 富集
-- **断点续跑**：每个主要步骤保存中间 AnnData 对象，重复运行自动跳过已完成步骤
-- **内存高效**：分块 CSV 读取并自动转换为稀疏矩阵
-- **出版级图表**：Nature 风格图表（PNG + PDF）及对应的 CSV 源数据
-
-### 安装与运行
-
+**快速开始**：
 `ash
 pip install pandas numpy scipy anndata scanpy statsmodels gseapy scikit-learn seaborn matplotlib tqdm
-python scripts/pipeline.py     # 全流程预处理
+python scripts/pipeline.py     # 预处理（支持断点续跑）
 python scripts/pb_deg.py       # 伪Bulk差异分析
 python scripts/trajectory.py   # 基因聚类
 `
 
-所有脚本均包含入口点，可独立运行或链式执行。数据路径通过类属性配置。
+所有脚本均包含独立入口点。详细方法和经验总结见 [SKILL.md](SKILL.md)。
+
+## License
+
+MIT &mdash; see [LICENSE](LICENSE)
